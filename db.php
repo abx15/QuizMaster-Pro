@@ -1,7 +1,6 @@
 <?php
-// db.php - Database connection
 session_start();
-
+// db.php - Database connection
 $host = 'localhost';
 $username = 'root';
 $password = '';
@@ -39,6 +38,7 @@ function create_tables($conn) {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )";
     
+    // Execute table creation queries
     mysqli_query($conn, $users_table);
     mysqli_query($conn, $questions_table);
     
@@ -57,6 +57,7 @@ function create_tables($conn) {
     $question_check = "SELECT id FROM questions LIMIT 1";
     $result = mysqli_query($conn, $question_check);
     
+    // If no questions, insert sample data
     if (mysqli_num_rows($result) == 0) {
         $sample_questions = [
             [

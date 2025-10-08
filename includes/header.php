@@ -9,6 +9,10 @@ $is_logged_in = isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true
 $is_admin = $is_logged_in && isset($_SESSION['role']) && $_SESSION['role'] === 'admin';
 $username = $is_logged_in ? $_SESSION['username'] : '';
 $current_page = basename($_SERVER['PHP_SELF']);
+
+// Get current directory for admin pages
+$current_dir = basename(dirname($_SERVER['PHP_SELF']));
+$is_admin_page = $current_dir === 'admin';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -26,7 +30,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
             'dashboard.php' => 'Admin Dashboard - Quiz App',
             'add_question.php' => 'Add Question - Quiz App',
             'edit_question.php' => 'Edit Question - Quiz App',
-            'delete_question.php' => 'Delete Question - Quiz App'
+            'delete_question.php' => 'Delete Question - Quiz App',
+            'manage_users.php' => 'Manage Users - Quiz App',
+            'quiz_results.php' => 'Quiz Results - Quiz App'
         ];
         echo $page_titles[$current_page] ?? 'QuizMaster Pro';
         ?>
@@ -55,6 +61,10 @@ $current_page = basename($_SERVER['PHP_SELF']);
             background: #4f46e5;
             border-radius: 2px;
         }
+        .admin-badge {
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+            color: white;
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen flex flex-col">
@@ -64,7 +74,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
             <div class="flex justify-between items-center py-4">
                 <!-- Logo -->
                 <div class="flex items-center">
-                    <a href="index.php" class="flex items-center space-x-3 text-indigo-600 hover:text-indigo-500 transition-colors duration-200">
+                    <a href="<?php echo $is_admin_page ? '../index.php' : 'index.php'; ?>" class="flex items-center space-x-3 text-indigo-600 hover:text-indigo-500 transition-colors duration-200">
                         <div class="p-2 bg-indigo-100 rounded-xl">
                             <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
                                 <circle cx="32" cy="32" r="30" stroke="currentColor" stroke-width="3" fill="none"/>
@@ -75,6 +85,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
                             </svg>
                         </div>
                         <span class="text-xl font-bold">QuizMaster Pro</span>
+                        <?php if ($is_admin_page): ?>
+                            <span class="admin-badge px-2 py-1 rounded-full text-xs font-bold">ADMIN</span>
+                        <?php endif; ?>
                     </a>
                 </div>
 
@@ -93,19 +106,29 @@ $current_page = basename($_SERVER['PHP_SELF']);
                         </a>
                     <?php elseif ($is_admin): ?>
                         <!-- Admin Navigation -->
-                        <a href="admin/dashboard.php" class="nav-link <?php echo $current_page === 'dashboard.php' ? 'active' : ''; ?> text-gray-700 hover:text-indigo-600">
+                        <a href="<?php echo $is_admin_page ? 'dashboard.php' : 'admin/dashboard.php'; ?>" 
+                           class="nav-link <?php echo $current_page === 'dashboard.php' ? 'active' : ''; ?> text-gray-700 hover:text-indigo-600">
                             <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
                         </a>
-                        <a href="admin/add_question.php" class="nav-link <?php echo $current_page === 'add_question.php' ? 'active' : ''; ?> text-gray-700 hover:text-indigo-600">
+                        <a href="<?php echo $is_admin_page ? 'add_question.php' : 'admin/add_question.php'; ?>" 
+                           class="nav-link <?php echo $current_page === 'add_question.php' ? 'active' : ''; ?> text-gray-700 hover:text-indigo-600">
                             <i class="fas fa-plus-circle mr-2"></i>Add Question
                         </a>
-                        <a href="index.php" class="nav-link text-gray-700 hover:text-indigo-600">
+                        <a href="<?php echo $is_admin_page ? 'manage_questions.php' : 'admin/manage_questions.php'; ?>" 
+                           class="nav-link <?php echo $current_page === 'manage_questions.php' ? 'active' : ''; ?> text-gray-700 hover:text-indigo-600">
+                            <i class="fas fa-edit mr-2"></i>Manage Questions
+                        </a>
+                        <a href="<?php echo $is_admin_page ? '../index.php' : 'index.php'; ?>" 
+                           class="nav-link text-gray-700 hover:text-indigo-600">
                             <i class="fas fa-home mr-2"></i>Home
                         </a>
                     <?php else: ?>
                         <!-- User Navigation -->
                         <a href="quiz.php" class="nav-link <?php echo $current_page === 'quiz.php' ? 'active' : ''; ?> text-gray-700 hover:text-indigo-600">
                             <i class="fas fa-play-circle mr-2"></i>Take Quiz
+                        </a>
+                        <a href="result.php" class="nav-link <?php echo $current_page === 'result.php' ? 'active' : ''; ?> text-gray-700 hover:text-indigo-600">
+                            <i class="fas fa-chart-bar mr-2"></i>My Results
                         </a>
                         <a href="index.php" class="nav-link text-gray-700 hover:text-indigo-600">
                             <i class="fas fa-home mr-2"></i>Home
@@ -122,7 +145,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                 <i class="fas fa-user-circle mr-2"></i>Welcome, <span class="font-semibold text-indigo-600"><?php echo htmlspecialchars($username); ?></span>
                             </span>
                             <?php if ($is_admin): ?>
-                                <span class="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-medium">
+                                <span class="admin-badge px-3 py-1 rounded-full text-sm font-medium">
                                     <i class="fas fa-crown mr-1"></i>Admin
                                 </span>
                             <?php endif; ?>
@@ -155,17 +178,27 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 <?php elseif ($is_admin): ?>
                     <!-- Admin Mobile Navigation -->
                     <div class="px-4 py-2 text-sm text-gray-500 font-semibold">Admin Panel</div>
-                    <a href="admin/dashboard.php" class="block py-3 px-4 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors duration-200 <?php echo $current_page === 'dashboard.php' ? 'bg-indigo-50 text-indigo-600 font-semibold' : ''; ?>">
+                    <a href="<?php echo $is_admin_page ? 'dashboard.php' : 'admin/dashboard.php'; ?>" 
+                       class="block py-3 px-4 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors duration-200 <?php echo $current_page === 'dashboard.php' ? 'bg-indigo-50 text-indigo-600 font-semibold' : ''; ?>">
                         <i class="fas fa-tachometer-alt mr-3"></i>Dashboard
                     </a>
-                    <a href="admin/add_question.php" class="block py-3 px-4 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors duration-200 <?php echo $current_page === 'add_question.php' ? 'bg-indigo-50 text-indigo-600 font-semibold' : ''; ?>">
+                    <a href="<?php echo $is_admin_page ? 'add_question.php' : 'admin/add_question.php'; ?>" 
+                       class="block py-3 px-4 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors duration-200 <?php echo $current_page === 'add_question.php' ? 'bg-indigo-50 text-indigo-600 font-semibold' : ''; ?>">
                         <i class="fas fa-plus-circle mr-3"></i>Add Question
                     </a>
-                    <a href="index.php" class="block py-3 px-4 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors duration-200">
+                    <a href="<?php echo $is_admin_page ? 'manage_questions.php' : 'admin/manage_questions.php'; ?>" 
+                       class="block py-3 px-4 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors duration-200 <?php echo $current_page === 'manage_questions.php' ? 'bg-indigo-50 text-indigo-600 font-semibold' : ''; ?>">
+                        <i class="fas fa-edit mr-3"></i>Manage Questions
+                    </a>
+                    <a href="<?php echo $is_admin_page ? '../index.php' : 'index.php'; ?>" 
+                       class="block py-3 px-4 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors duration-200">
                         <i class="fas fa-home mr-3"></i>Home
                     </a>
                     <div class="border-t border-gray-200 mt-2 pt-2">
-                        <div class="px-4 py-2 text-sm text-gray-500">Logged in as: <span class="font-semibold text-indigo-600"><?php echo htmlspecialchars($username); ?></span></div>
+                        <div class="px-4 py-2 text-sm text-gray-500">
+                            Logged in as: <span class="font-semibold text-indigo-600"><?php echo htmlspecialchars($username); ?></span>
+                            <span class="admin-badge ml-2 px-2 py-1 rounded-full text-xs">Admin</span>
+                        </div>
                         <a href="logout.php" class="block py-3 px-4 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200">
                             <i class="fas fa-sign-out-alt mr-3"></i>Logout
                         </a>
@@ -174,6 +207,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
                     <!-- User Mobile Navigation -->
                     <a href="quiz.php" class="block py-3 px-4 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors duration-200 <?php echo $current_page === 'quiz.php' ? 'bg-indigo-50 text-indigo-600 font-semibold' : ''; ?>">
                         <i class="fas fa-play-circle mr-3"></i>Take Quiz
+                    </a>
+                    <a href="result.php" class="block py-3 px-4 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors duration-200 <?php echo $current_page === 'result.php' ? 'bg-indigo-50 text-indigo-600 font-semibold' : ''; ?>">
+                        <i class="fas fa-chart-bar mr-3"></i>My Results
                     </a>
                     <a href="index.php" class="block py-3 px-4 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors duration-200">
                         <i class="fas fa-home mr-3"></i>Home
@@ -190,4 +226,24 @@ $current_page = basename($_SERVER['PHP_SELF']);
     </nav>
 
     <!-- Main Content Container -->
-    <main class="flex-grow"></main>
+    <main class="flex-grow">
+        <!-- Content will be inserted here by individual pages -->
+    
+
+<script>
+// Mobile menu toggle
+document.getElementById('mobile-menu-button').addEventListener('click', function() {
+    const mobileMenu = document.getElementById('mobile-menu');
+    mobileMenu.classList.toggle('hidden');
+});
+
+// Close mobile menu when clicking outside
+document.addEventListener('click', function(event) {
+    const mobileMenu = document.getElementById('mobile-menu');
+    const menuButton = document.getElementById('mobile-menu-button');
+    
+    if (!mobileMenu.contains(event.target) && !menuButton.contains(event.target)) {
+        mobileMenu.classList.add('hidden');
+    }
+});
+</script>

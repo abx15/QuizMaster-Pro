@@ -2,6 +2,11 @@
 // admin/edit_question.php - Edit Question
 include '../db.php';
 
+// Start session if not already started
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 // Check if user is logged in and is admin
 if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true || $_SESSION['role'] !== 'admin') {
     header('Location: ../login.php');
@@ -59,24 +64,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = mysqli_prepare($conn, 
             "UPDATE questions SET question = ?, option_a = ?, option_b = ?, option_c = ?, option_d = ?, correct_answer = ?, category = ?, explanation = ?, image_url = ? 
              WHERE id = ?");
-        mysqli_stmt_bind_param($stmt, "sssssssssi", $question_text, $option_a, $option_b, $option_c, $option_d, $correct_answer, $category, $explanation, $image_url, $question_id);
         
-        if (mysqli_stmt_execute($stmt)) {
-            $success = 'Question updated successfully!';
-            // Update local question data for form
-            $question = [
-                'question' => $question_text,
-                'option_a' => $option_a,
-                'option_b' => $option_b,
-                'option_c' => $option_c,
-                'option_d' => $option_d,
-                'correct_answer' => $correct_answer,
-                'category' => $category,
-                'explanation' => $explanation,
-                'image_url' => $image_url
-            ];
+        if ($stmt) {
+            mysqli_stmt_bind_param($stmt, "sssssssssi", $question_text, $option_a, $option_b, $option_c, $option_d, $correct_answer, $category, $explanation, $image_url, $question_id);
+            
+            if (mysqli_stmt_execute($stmt)) {
+                $success = 'Question updated successfully!';
+                // Refresh question data
+                $stmt = mysqli_prepare($conn, "SELECT * FROM questions WHERE id = ?");
+                mysqli_stmt_bind_param($stmt, "i", $question_id);
+                mysqli_stmt_execute($stmt);
+                $result = mysqli_stmt_get_result($stmt);
+                $question = mysqli_fetch_assoc($result);
+            } else {
+                $error = 'Failed to update question. Please try again. Error: ' . mysqli_error($conn);
+            }
         } else {
-            $error = 'Failed to update question. Please try again.';
+            $error = 'Database error: ' . mysqli_error($conn);
         }
     }
 }
@@ -144,7 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </label>
                 <textarea name="question" required rows="4"
                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200 resize-none"
-                          placeholder="Enter your question here..."><?php echo htmlspecialchars($question['question']); ?></textarea>
+                          placeholder="Enter your question here..."><?php echo htmlspecialchars($question['question'] ?? ''); ?></textarea>
                 <p class="text-sm text-gray-500 mt-1">Minimum 10 characters</p>
             </div>
 
@@ -157,7 +161,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <input type="text" name="option_a" required
                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200"
                            placeholder="Enter option A"
-                           value="<?php echo htmlspecialchars($question['option_a']); ?>">
+                           value="<?php echo htmlspecialchars($question['option_a'] ?? ''); ?>">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -166,7 +170,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <input type="text" name="option_b" required
                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200"
                            placeholder="Enter option B"
-                           value="<?php echo htmlspecialchars($question['option_b']); ?>">
+                           value="<?php echo htmlspecialchars($question['option_b'] ?? ''); ?>">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -175,7 +179,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <input type="text" name="option_c" required
                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200"
                            placeholder="Enter option C"
-                           value="<?php echo htmlspecialchars($question['option_c']); ?>">
+                           value="<?php echo htmlspecialchars($question['option_c'] ?? ''); ?>">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -184,7 +188,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <input type="text" name="option_d" required
                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200"
                            placeholder="Enter option D"
-                           value="<?php echo htmlspecialchars($question['option_d']); ?>">
+                           value="<?php echo htmlspecialchars($question['option_d'] ?? ''); ?>">
                 </div>
             </div>
 
@@ -195,10 +199,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </label>
                 <select name="correct_answer" required
                         class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200">
-                    <option value="A" <?php echo $question['correct_answer'] === 'A' ? 'selected' : ''; ?>>Option A</option>
-                    <option value="B" <?php echo $question['correct_answer'] === 'B' ? 'selected' : ''; ?>>Option B</option>
-                    <option value="C" <?php echo $question['correct_answer'] === 'C' ? 'selected' : ''; ?>>Option C</option>
-                    <option value="D" <?php echo $question['correct_answer'] === 'D' ? 'selected' : ''; ?>>Option D</option>
+                    <option value="">Select correct answer</option>
+                    <option value="A" <?= ($question['correct_answer'] ?? '') === 'A' ? 'selected' : '' ?>>Option A</option>
+                    <option value="B" <?= ($question['correct_answer'] ?? '') === 'B' ? 'selected' : '' ?>>Option B</option>
+                    <option value="C" <?= ($question['correct_answer'] ?? '') === 'C' ? 'selected' : '' ?>>Option C</option>
+                    <option value="D" <?= ($question['correct_answer'] ?? '') === 'D' ? 'selected' : '' ?>>Option D</option>
                 </select>
             </div>
 
@@ -207,7 +212,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <label class="block text-sm font-medium text-gray-700 mb-2">Explanation (Optional)</label>
                 <textarea name="explanation" rows="3"
                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200 resize-none"
-                          placeholder="Provide an explanation for the correct answer"><?php echo htmlspecialchars($question['explanation']); ?></textarea>
+                          placeholder="Provide an explanation for the correct answer"><?php echo htmlspecialchars($question['explanation'] ?? ''); ?></textarea>
                 <p class="text-sm text-gray-500 mt-1">This helps users understand why the answer is correct</p>
             </div>
 
@@ -217,10 +222,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <input type="url" name="image_url"
                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200"
                        placeholder="https://example.com/image.jpg"
-                       value="<?php echo htmlspecialchars($question['image_url']); ?>">
+                       value="<?php echo htmlspecialchars($question['image_url'] ?? ''); ?>">
                 <p class="text-sm text-gray-500 mt-1">Provide a direct link to an image (jpg, png, gif)</p>
                 
-                <?php if ($question['image_url']): ?>
+                <?php if (!empty($question['image_url'])): ?>
                     <div class="mt-3">
                         <p class="text-sm font-medium text-gray-700 mb-2">Current Image Preview:</p>
                         <img src="<?php echo htmlspecialchars($question['image_url']); ?>" 
@@ -240,16 +245,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </svg>
                     Update Question
                 </button>
-                <a href="dashboard.php" 
+                <a href="manage_questions.php" 
                    class="bg-gray-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-gray-700 transition-colors duration-200 flex items-center">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                     </svg>
-                    Back to Dashboard
+                    Back to Manage Questions
                 </a>
                 <a href="delete_question.php?id=<?php echo $question_id; ?>" 
                    class="bg-red-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-red-700 transition-colors duration-200 flex items-center ml-auto"
-                   onclick="return confirm('Are you sure you want to delete this question?')">
+                   onclick="return confirm('Are you sure you want to delete this question? This action cannot be undone.')">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                     </svg>
@@ -264,7 +269,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
                 <div>
                     <span class="font-medium">Created:</span> 
-                    <?php echo date('F j, Y g:i A', strtotime($question['created_at'])); ?>
+                    <?php echo !empty($question['created_at']) ? date('F j, Y g:i A', strtotime($question['created_at'])) : 'Unknown'; ?>
                 </div>
                 <div>
                     <span class="font-medium">Question ID:</span> 
@@ -272,11 +277,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
                 <div>
                     <span class="font-medium">Character Count:</span> 
-                    <?php echo strlen($question['question']); ?>
+                    <?php echo strlen($question['question'] ?? ''); ?>
                 </div>
                 <div>
                     <span class="font-medium">Has Image:</span> 
-                    <?php echo $question['image_url'] ? 'Yes' : 'No'; ?>
+                    <?php echo !empty($question['image_url']) ? 'Yes' : 'No'; ?>
                 </div>
                 <div>
                     <span class="font-medium">Has Explanation:</span> 
@@ -285,7 +290,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div>
                     <span class="font-medium">Category:</span> 
                     <span class="font-semibold text-indigo-600">
-                        <?php echo htmlspecialchars($categories[$question['category']] ?? $question['category']); ?>
+                        <?php echo htmlspecialchars($categories[$question['category']] ?? $question['category'] ?? 'Unknown'); ?>
                     </span>
                 </div>
             </div>
@@ -321,45 +326,50 @@ document.querySelector('form').addEventListener('submit', function(e) {
 
 // Character counter for question
 const questionTextarea = document.querySelector('textarea[name="question"]');
-const questionCounter = document.createElement('div');
-questionCounter.className = 'text-sm text-gray-500 text-right mt-1';
-questionTextarea.parentNode.appendChild(questionCounter);
+if (questionTextarea) {
+    const questionCounter = document.createElement('div');
+    questionCounter.className = 'text-sm text-gray-500 text-right mt-1';
+    questionTextarea.parentNode.appendChild(questionCounter);
 
-function updateCounter() {
-    const length = questionTextarea.value.length;
-    questionCounter.textContent = `${length} characters`;
-    if (length < 10) {
-        questionCounter.className = 'text-sm text-red-500 text-right mt-1';
-    } else {
-        questionCounter.className = 'text-sm text-green-500 text-right mt-1';
+    function updateCounter() {
+        const length = questionTextarea.value.length;
+        questionCounter.textContent = `${length} characters`;
+        if (length < 10) {
+            questionCounter.className = 'text-sm text-red-500 text-right mt-1';
+        } else {
+            questionCounter.className = 'text-sm text-green-500 text-right mt-1';
+        }
     }
-}
 
-questionTextarea.addEventListener('input', updateCounter);
-updateCounter();
+    questionTextarea.addEventListener('input', updateCounter);
+    updateCounter();
+}
 
 // Image URL validation and preview
 const imageUrlInput = document.querySelector('input[name="image_url"]');
-const imagePreview = document.createElement('div');
-imagePreview.className = 'mt-3 hidden';
-imagePreview.innerHTML = '<p class="text-sm font-medium text-gray-700 mb-2">New Image Preview:</p><img class="max-w-xs h-auto rounded-lg border border-gray-300">';
-imageUrlInput.parentNode.appendChild(imagePreview);
+if (imageUrlInput) {
+    const imagePreview = document.createElement('div');
+    imagePreview.className = 'mt-3 hidden';
+    imagePreview.innerHTML = '<p class="text-sm font-medium text-gray-700 mb-2">New Image Preview:</p><img class="max-w-xs h-auto rounded-lg border border-gray-300" onerror="this.style.display=\'none\'">';
+    imageUrlInput.parentNode.appendChild(imagePreview);
 
-imageUrlInput.addEventListener('input', function() {
-    const url = this.value.trim();
-    if (url) {
-        const img = imagePreview.querySelector('img');
-        img.src = url;
-        img.onload = function() {
-            imagePreview.classList.remove('hidden');
-        };
-        img.onerror = function() {
+    imageUrlInput.addEventListener('input', function() {
+        const url = this.value.trim();
+        if (url) {
+            const img = imagePreview.querySelector('img');
+            img.src = url;
+            img.onload = function() {
+                imagePreview.classList.remove('hidden');
+                img.style.display = 'block';
+            };
+            img.onerror = function() {
+                imagePreview.classList.add('hidden');
+            };
+        } else {
             imagePreview.classList.add('hidden');
-        };
-    } else {
-        imagePreview.classList.add('hidden');
-    }
-});
+        }
+    });
+}
 </script>
 
 <?php include '../includes/footer.php'; ?>

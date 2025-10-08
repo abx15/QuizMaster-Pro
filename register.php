@@ -1,5 +1,4 @@
 <?php
-// register.php - User Registration
 include 'db.php';
 
 $error = '';

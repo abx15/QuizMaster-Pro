@@ -1,15 +1,12 @@
 <?php
-// setup_database.php - Database setup script
 $host = 'localhost';
 $username = 'root';
 $password = '';
 $database = 'quiz_app';
 
 try {
-    // Create connection
     $conn = new mysqli($host, $username, $password);
     
-    // Check connection
     if ($conn->connect_error) {
         die("Connection failed: " . $conn->connect_error);
     }

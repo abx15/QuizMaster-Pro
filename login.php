@@ -1,26 +1,28 @@
 <?php
-// login.php - Login Page
 include 'db.php';
-// session_start();
+
+// Start session safely
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 $error = '';
 
+// Handle login form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = trim($_POST['username']);
-    $password = $_POST['password'];
+    $username_or_email = trim($_POST['username_or_email'] ?? '');
+    $password = $_POST['password'] ?? '';
     
-    if (empty($username) || empty($password)) {
-        $error = 'Please enter both username and password';
+    if (empty($username_or_email) || empty($password)) {
+        $error = 'Please enter your username/email and password';
     } else {
-        $stmt = mysqli_prepare($conn, "SELECT id, username, password, role FROM users WHERE username = ?");
-        mysqli_stmt_bind_param($stmt, "s", $username);
+        $stmt = mysqli_prepare($conn, "SELECT id, username, email, password, role FROM users WHERE username = ? OR email = ?");
+        mysqli_stmt_bind_param($stmt, "ss", $username_or_email, $username_or_email);
         mysqli_stmt_execute($stmt);
         $result = mysqli_stmt_get_result($stmt);
         $user = mysqli_fetch_assoc($result);
         
-        // Plain password check (hash removed)
         if ($user && $password === $user['password']) {
-            // Regenerate session ID for security
             session_regenerate_id(true);
             
             $_SESSION['user_id'] = $user['id'];
@@ -28,7 +30,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['role'] = $user['role'];
             $_SESSION['logged_in'] = true;
             
-            // Redirect based on role
             if ($user['role'] === 'admin') {
                 header('Location: admin/dashboard.php');
             } else {
@@ -36,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             exit();
         } else {
-            $error = 'Invalid username or password';
+            $error = 'Invalid username/email or password';
         }
     }
 }
@@ -78,10 +79,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <!-- Login Form -->
             <form method="POST" class="space-y-6">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Username</label>
-                    <input type="text" name="username" required 
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Username or Email</label>
+                    <input type="text" name="username_or_email" required 
                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200"
-                           value="<?php echo isset($_POST['username']) ? htmlspecialchars($_POST['username']) : ''; ?>">
+                           value="<?php echo isset($_POST['username_or_email']) ? htmlspecialchars($_POST['username_or_email']) : ''; ?>">
                 </div>
                 
                 <div>
@@ -106,7 +107,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <!-- Admin Demo -->
             <div class="mt-8 p-4 bg-gray-50 rounded-lg">
                 <p class="text-sm text-gray-600 text-center">
-                    <strong>Admin Demo:</strong> username: <code>admin</code> / password: <code>admin123</code>
+                    <strong>Admin Demo:</strong> username: <code>admin</code> / password: <code>admin123</code><br>
+                    <strong>or</strong> email: <code>admin@example.com</code>
                 </p>
             </div>
         </div>

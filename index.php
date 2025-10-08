@@ -75,7 +75,7 @@ include 'includes/header.php';
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
         <div class="bg-white rounded-2xl p-6 shadow-lg">
             <div class="text-3xl font-bold text-indigo-600 mb-2">
-            <!-- Questions Count -->
+                <!-- Questions Count -->
                 <?php
                 $stmt = mysqli_prepare($conn, "SELECT COUNT(*) as count FROM questions");
                 mysqli_stmt_execute($stmt);
@@ -89,7 +89,7 @@ include 'includes/header.php';
         <div class="bg-white rounded-2xl p-6 shadow-lg">
             <div class="text-3xl font-bold text-indigo-600 mb-2">
 
-            <!-- Active Users Count -->
+                <!-- Active Users Count -->
                 <?php
                 $stmt = mysqli_prepare($conn, "SELECT COUNT(*) as count FROM users WHERE role='user'");
                 mysqli_stmt_execute($stmt);

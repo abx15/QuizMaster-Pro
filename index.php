@@ -1,5 +1,4 @@
 <?php
-// index.php - Home Page
 include 'db.php';
 include 'includes/header.php';
 ?>
@@ -8,6 +7,7 @@ include 'includes/header.php';
     <!-- Header -->
     <header class="text-center mb-12">
         <div class="inline-block p-4 bg-white rounded-2xl shadow-lg mb-6">
+            <!-- svg hai yaha pr  -->
             <svg class="w-16 h-16 text-indigo-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
                 <circle cx="32" cy="32" r="30" stroke="currentColor" stroke-width="3" fill="none" />
                 <path d="M25 28 L29 32 L39 22" stroke="currentColor" stroke-width="3" fill="none" />
@@ -50,7 +50,7 @@ include 'includes/header.php';
                     </div>
                 </div>
             </div>
-
+            <!-- quiz start karne ke liye  -->
             <div class="text-center">
                 <div class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-8 text-white">
                     <h3 class="text-2xl font-bold mb-4">Ready to Begin?</h3>
@@ -75,6 +75,7 @@ include 'includes/header.php';
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
         <div class="bg-white rounded-2xl p-6 shadow-lg">
             <div class="text-3xl font-bold text-indigo-600 mb-2">
+            <!-- Questions Count -->
                 <?php
                 $stmt = mysqli_prepare($conn, "SELECT COUNT(*) as count FROM questions");
                 mysqli_stmt_execute($stmt);
@@ -87,6 +88,8 @@ include 'includes/header.php';
         </div>
         <div class="bg-white rounded-2xl p-6 shadow-lg">
             <div class="text-3xl font-bold text-indigo-600 mb-2">
+
+            <!-- Active Users Count -->
                 <?php
                 $stmt = mysqli_prepare($conn, "SELECT COUNT(*) as count FROM users WHERE role='user'");
                 mysqli_stmt_execute($stmt);

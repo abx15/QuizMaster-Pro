@@ -1,367 +1,408 @@
 <?php
 include 'db.php';
 
+if (session_status() == PHP_SESSION_NONE) session_start();
+
 if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
     header('Location: login.php');
     exit();
 }
 
-// Define categories
-$categories = [
-    'all' => 'All Categories',
-    'gk' => 'General Knowledge',
-    'cs' => 'Computer Science',
-    'math' => 'Mathematics',
-    'english' => 'English',
-    'hindi' => 'Hindi'
-];
-
-// Get selected category
+// Categories
+$categories = ['all'=>'All Categories','gk'=>'General Knowledge','cs'=>'Computer Science','math'=>'Mathematics','english'=>'English','hindi'=>'Hindi'];
 $selected_category = $_GET['category'] ?? 'all';
 
-// Reset quiz when category changes or new quiz starts
+// Reset quiz if new or category changed
 if (isset($_GET['new_quiz']) || !isset($_SESSION['current_question']) || $_SESSION['selected_category'] !== $selected_category) {
     $_SESSION['current_question'] = 0;
     $_SESSION['score'] = 0;
     $_SESSION['user_answers'] = [];
-    $_SESSION['quiz_started'] = true;
-    $_SESSION['selected_category'] = $selected_category;
     $_SESSION['question_feedback'] = [];
+    $_SESSION['selected_category'] = $selected_category;
 }
 
-// Build query based on category
+// Fetch questions
 if ($selected_category === 'all') {
-    $stmt = mysqli_prepare($conn, "SELECT * FROM questions ORDER BY RAND()");
+    $stmt = mysqli_prepare($conn, "SELECT * FROM questions ORDER BY id ASC");
 } else {
-    $stmt = mysqli_prepare($conn, "SELECT * FROM questions WHERE category = ? ORDER BY RAND()");
+    $stmt = mysqli_prepare($conn, "SELECT * FROM questions WHERE category=? ORDER BY id ASC");
     mysqli_stmt_bind_param($stmt, "s", $selected_category);
 }
-
 mysqli_stmt_execute($stmt);
 $result = mysqli_stmt_get_result($stmt);
 $questions = mysqli_fetch_all($result, MYSQLI_ASSOC);
 
 $total_questions = count($questions);
-$current_index = $_SESSION['current_question'];
+$current_index = $_SESSION['current_question'] ?? 0;
 $current_question = $questions[$current_index] ?? null;
-$show_feedback = false;
-$feedback_message = '';
-$is_correct = false;
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['answer'])) {
-    $selected_answer = $_POST['answer'];
-    $question_id = $_POST['question_id'];
+// Handle form submission
+if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['answer']) && $current_question) {
+    $answer = $_POST['answer'];
+    $qid = $current_question['id'];
 
-    $_SESSION['user_answers'][$question_id] = $selected_answer;
+    $_SESSION['user_answers'][$qid] = $answer;
 
-    // Check if answer is correct
-    if ($selected_answer === $current_question['correct_answer']) {
+    if ($answer === $current_question['correct_answer']) {
         $_SESSION['score']++;
-        $is_correct = true;
-        $feedback_message = 'Correct! 🎉';
+        $_SESSION['question_feedback'][$qid] = [
+            'correct' => true,
+            'selected' => $answer,
+            'explanation' => $current_question['explanation'] ?? ''
+        ];
     } else {
-        $is_correct = false;
-        $feedback_message = 'Incorrect! 😔';
+        $_SESSION['question_feedback'][$qid] = [
+            'correct' => false,
+            'selected' => $answer,
+            'explanation' => $current_question['explanation'] ?? ''
+        ];
     }
 
-    // Store feedback for this question
-    $_SESSION['question_feedback'][$question_id] = [
-        'selected' => $selected_answer,
-        'correct' => $current_question['correct_answer'],
-        'explanation' => $current_question['explanation'] ?? '',
-        'is_correct' => $is_correct
-    ];
+    // Reload to show feedback
+    header("Location: quiz.php?category=$selected_category");
+    exit();
+}
 
-    $show_feedback = true;
+// Navigation
+if (isset($_GET['action'])) {
+    if ($_GET['action']==='next' && $current_index<$total_questions-1) {
+        $_SESSION['current_question']++;
+        header("Location: quiz.php?category=$selected_category");
+        exit();
+    } elseif ($_GET['action']==='prev' && $current_index>0) {
+        $_SESSION['current_question']--;
+        header("Location: quiz.php?category=$selected_category");
+        exit();
+    }
 }
 ?>
 
 <?php include 'includes/header.php'; ?>
 
-<div class="max-w-6xl mx-auto px-4 py-8">
-    <!-- Category Selection -->
-    <div class="bg-white rounded-2xl shadow-lg p-6 mb-8">
-        <h2 class="text-xl font-bold text-gray-800 mb-4">Select Quiz Category</h2>
-        <div class="flex flex-wrap gap-3">
-            <?php foreach ($categories as $key => $name): ?>
-                <a href="quiz.php?category=<?= $key ?>&new_quiz=true" 
-                   class="px-4 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 <?= $selected_category === $key ? 'bg-indigo-600 text-white shadow-lg' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' ?>">
-                    <?= htmlspecialchars($name) ?>
-                </a>
-            <?php endforeach; ?>
-        </div>
-    </div>
+<style>
+.quiz-container {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px 0;
+}
 
-    <!-- Progress and Stats -->
-    <div class="bg-white rounded-2xl shadow-lg p-6 mb-8">
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
-            <div>
-                <h2 class="text-xl font-bold text-gray-800">
-                    <?= htmlspecialchars($categories[$selected_category]) ?> - 
-                    Question <?= $current_index + 1 ?> of <?= $total_questions ?>
-                </h2>
-                <p class="text-gray-600 text-sm mt-1">
-                    Category: <span class="font-semibold text-indigo-600"><?= htmlspecialchars($categories[$selected_category]) ?></span>
-                </p>
-            </div>
-            <div class="flex items-center space-x-6">
-                <div class="text-center">
-                    <div class="text-2xl font-bold text-indigo-600"><?= $_SESSION['score'] ?></div>
-                    <div class="text-sm text-gray-600">Score</div>
-                </div>
-                <div class="text-center">
-                    <div class="text-2xl font-bold text-green-600">
-                        <?= $total_questions > 0 ? round(($_SESSION['score'] / ($current_index + 1)) * 100) : 0 ?>%
-                    </div>
-                    <div class="text-sm text-gray-600">Accuracy</div>
-                </div>
-            </div>
-        </div>
+.glass-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.category-btn {
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.category-btn.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-color: #667eea;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.category-btn:hover:not(.active) {
+    border-color: #667eea;
+    transform: translateY(-1px);
+}
+
+.option-card {
+    transition: all 0.3s ease;
+    border: 2px solid #e2e8f0;
+    cursor: pointer;
+}
+
+.option-card:hover {
+    border-color: #667eea;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.option-card.selected {
+    border-color: #667eea;
+    background-color: #f0f4ff;
+}
+
+.option-card.correct {
+    border-color: #10b981;
+    background-color: #ecfdf5;
+}
+
+.option-card.incorrect {
+    border-color: #ef4444;
+    background-color: #fef2f2;
+}
+
+.progress-bar {
+    background: #e2e8f0;
+    border-radius: 10px;
+    overflow: hidden;
+    height: 8px;
+}
+
+.progress-fill {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    height: 100%;
+    transition: width 0.3s ease;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 12px 30px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary {
+    background: #64748b;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 12px 30px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+    background: #475569;
+    transform: translateY(-2px);
+}
+
+.explanation-box {
+    background: linear-gradient(135deg, #f0f4ff 0%, #f8fafc 100%);
+    border-left: 4px solid #667eea;
+    animation: slideIn 0.5s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.quiz-stats {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+</style>
+
+<div class="quiz-container">
+    <div class="max-w-4xl mx-auto px-4 py-6">
         
-        <!-- Progress Bar -->
-        <div class="w-full bg-gray-200 rounded-full h-3">
-            <div class="bg-indigo-600 h-3 rounded-full transition-all duration-500 ease-out" 
-                 style="width: <?= $total_questions > 0 ? (($current_index + 1) / $total_questions) * 100 : 0 ?>%"></div>
-        </div>
-    </div>
-
-    <?php if ($total_questions === 0): ?>
-        <!-- No Questions Available -->
-        <div class="bg-white rounded-2xl shadow-xl p-12 text-center">
-            <div class="text-6xl mb-4">📚</div>
-            <h2 class="text-3xl font-bold text-gray-800 mb-4">No Questions Available</h2>
-            <p class="text-xl text-gray-600 mb-6">There are no questions in the selected category yet.</p>
-            <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                <a href="quiz.php?category=all" 
-                   class="bg-indigo-600 text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-indigo-700 transition-colors duration-200">
-                    Try All Categories
-                </a>
-                <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
-                    <a href="admin/add_question.php" 
-                       class="bg-green-600 text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-green-700 transition-colors duration-200">
-                        Add Questions
-                    </a>
-                <?php endif; ?>
-            </div>
-        </div>
-    <?php elseif ($current_index < $total_questions && $current_question): ?>
-        <!-- Current Question -->
-        <div class="bg-white rounded-2xl shadow-xl p-8 transition-all duration-300 transform hover:shadow-2xl">
-            <!-- Question Header -->
-            <div class="flex items-center justify-between mb-6">
-                <h3 class="text-2xl font-bold text-gray-800 flex-1"><?= htmlspecialchars($current_question['question']) ?></h3>
-                <?php if ($current_question['category']): ?>
-                    <span class="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm font-medium ml-4 whitespace-nowrap">
-                        <?= htmlspecialchars($categories[$current_question['category']] ?? $current_question['category']) ?>
-                    </span>
-                <?php endif; ?>
-            </div>
-
-            <!-- Question Image (if available) -->
-            <?php if (!empty($current_question['image_url'])): ?>
-                <div class="mb-6 text-center">
-                    <img src="<?= htmlspecialchars($current_question['image_url']) ?>" 
-                         alt="Question image" 
-                         class="max-w-full h-auto rounded-lg mx-auto shadow-md max-h-64 object-contain"
-                         onerror="this.style.display='none'">
+        <!-- Quiz Stats -->
+        <div class="quiz-stats glass-card mb-6">
+            <div class="flex justify-between items-center">
+                <div class="text-lg font-semibold text-gray-800">
+                    Question <?= $current_index + 1 ?> of <?= $total_questions ?>
                 </div>
-            <?php endif; ?>
+                <div class="text-lg font-semibold text-gray-800">
+                    Score: <?= $_SESSION['score'] ?? 0 ?>/<?= $total_questions ?>
+                </div>
+            </div>
+            <div class="progress-bar mt-3">
+                <div class="progress-fill" style="width: <?= $total_questions > 0 ? (($current_index + 1) / $total_questions) * 100 : 0 ?>%"></div>
+            </div>
+        </div>
 
-            <!-- Options Form -->
-            <form method="POST" class="space-y-4" id="quiz-form">
+        <!-- Category Selection -->
+        <div class="glass-card p-6 mb-8">
+            <h2 class="text-xl font-bold mb-4 text-gray-800">Select Quiz Category</h2>
+            <div class="flex flex-wrap gap-3">
+                <?php foreach ($categories as $key=>$name): ?>
+                    <a href="quiz.php?category=<?= $key ?>&new_quiz=true"
+                       class="category-btn px-5 py-3 rounded-xl font-medium transition <?= $selected_category===$key?'active':'bg-gray-100 text-gray-700' ?>">
+                       <?= htmlspecialchars($name) ?>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
+        <?php if ($total_questions===0): ?>
+            <div class="glass-card p-12 text-center">
+                <div class="text-5xl mb-4">📚</div>
+                <h2 class="text-3xl font-bold text-gray-800 mb-4">No Questions Available</h2>
+                <p class="text-gray-600 mb-6">There are no questions available for the selected category.</p>
+                <a href="quiz.php?category=all" class="btn-primary inline-block">Browse All Categories</a>
+            </div>
+        <?php elseif ($current_question): ?>
+        
+        <div class="glass-card p-8 mb-6">
+            <!-- Question -->
+            <div class="mb-8">
+                <div class="flex items-start gap-4">
+                    <div class="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+                        Q
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-800 leading-tight"><?= htmlspecialchars($current_question['question']) ?></h3>
+                </div>
+            </div>
+
+            <!-- Options -->
+            <form method="POST">
                 <input type="hidden" name="question_id" value="<?= $current_question['id'] ?>">
+                <?php 
+                $options=['A'=>'option_a','B'=>'option_b','C'=>'option_c','D'=>'option_d'];
+                $feedback = $_SESSION['question_feedback'][$current_question['id']] ?? null;
 
-                <?php
-                $options = [
-                    'A' => $current_question['option_a'],
-                    'B' => $current_question['option_b'],
-                    'C' => $current_question['option_c'],
-                    'D' => $current_question['option_d']
-                ];
-                
-                foreach ($options as $key => $value):
-                    $is_selected = $show_feedback && isset($_POST['answer']) && $_POST['answer'] === $key;
-                    $is_correct_answer = $show_feedback && $key === $current_question['correct_answer'];
+                foreach($options as $key=>$field):
+                    $value = $current_question[$field];
+                    $is_selected = ($feedback['selected'] ?? '') === $key;
+                    $is_correct_answer = $current_question['correct_answer'] === $key;
+                    $is_wrong_selected = isset($feedback['correct']) && !$feedback['correct'] && $is_selected;
                     
-                    $classes = "p-4 border-2 rounded-xl transition-all duration-300 cursor-pointer group ";
-                    
-                    if ($show_feedback) {
-                        if ($is_correct_answer) {
-                            $classes .= "border-green-500 bg-green-50 shadow-green-100 shadow-lg scale-105";
-                        } elseif ($is_selected && !$is_correct) {
-                            $classes .= "border-red-500 bg-red-50 shadow-red-100 shadow-lg";
-                        } else {
-                            $classes .= "border-gray-200 bg-gray-50 opacity-75";
-                        }
-                    } else {
-                        $classes .= "border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 hover:shadow-md transform hover:scale-[1.02]";
+                    $option_class = 'option-card';
+                    if ($is_selected) $option_class .= ' selected';
+                    if (isset($feedback)) {
+                        if ($is_correct_answer) $option_class .= ' correct';
+                        if ($is_wrong_selected) $option_class .= ' incorrect';
                     }
                 ?>
-                    <label class="block">
-                        <input type="radio" name="answer" value="<?= $key ?>" class="hidden" 
-                               <?= $show_feedback ? 'disabled' : '' ?>>
-                        <div class="<?= $classes ?>">
+                    <label class="block mb-4 cursor-pointer">
+                        <input type="radio" name="answer" value="<?= $key ?>" class="hidden peer" 
+                               <?= $is_selected?'checked':'' ?> <?= isset($feedback)?'disabled':'' ?>>
+                        <div class="<?= $option_class ?> p-5 rounded-xl transition">
                             <div class="flex items-center">
-                                <div class="w-10 h-10 flex items-center justify-center rounded-lg mr-4 font-semibold transition-colors duration-200
-                                    <?= $show_feedback ? 
-                                        ($is_correct_answer ? 'bg-green-500 text-white shadow-green-400 shadow-inner' : 
-                                         ($is_selected ? 'bg-red-500 text-white shadow-red-400 shadow-inner' : 'bg-gray-200 text-gray-600')) 
-                                        : 'bg-indigo-100 text-indigo-600 group-hover:bg-indigo-500 group-hover:text-white' ?>">
+                                <div class="w-8 h-8 rounded-full border-2 border-gray-300 flex items-center justify-center mr-4 font-semibold text-gray-600 peer-checked:border-indigo-600 peer-checked:bg-indigo-600 peer-checked:text-white">
                                     <?= $key ?>
                                 </div>
-                                <span class="text-gray-700 font-medium flex-1"><?= htmlspecialchars($value) ?></span>
-                                
-                                <?php if ($show_feedback): ?>
-                                    <?php if ($is_correct_answer): ?>
-                                        <svg class="w-6 h-6 text-green-500 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                        </svg>
-                                    <?php elseif ($is_selected && !$is_correct): ?>
-                                        <svg class="w-6 h-6 text-red-500 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                        </svg>
-                                    <?php endif; ?>
-                                <?php endif; ?>
+                                <span class="text-lg text-gray-800"><?= htmlspecialchars($value) ?></span>
                             </div>
                         </div>
                     </label>
                 <?php endforeach; ?>
 
-                <!-- Feedback Section -->
-                <?php if ($show_feedback): ?>
-                    <div class="mt-6 p-4 rounded-lg border-2 <?= $is_correct ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50' ?>">
-                        <div class="flex items-start">
-                            <div class="flex-shrink-0">
-                                <?php if ($is_correct): ?>
-                                    <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                        </svg>
-                                    </div>
-                                <?php else: ?>
-                                    <div class="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
-                                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                        </svg>
-                                    </div>
-                                <?php endif; ?>
-                            </div>
-                            <div class="ml-3">
-                                <h4 class="text-lg font-semibold <?= $is_correct ? 'text-green-800' : 'text-red-800' ?>">
-                                    <?= $feedback_message ?>
-                                </h4>
-                                <?php if (!$is_correct): ?>
-                                    <p class="text-gray-700 mt-1">
-                                        Correct answer: <span class="font-semibold text-green-600"><?= $current_question['correct_answer'] ?></span>
-                                    </p>
-                                <?php endif; ?>
-                                <?php if (!empty($current_question['explanation'])): ?>
-                                    <div class="mt-3 p-3 bg-white rounded-lg border">
-                                        <h5 class="font-semibold text-gray-800 mb-2">Explanation:</h5>
-                                        <p class="text-gray-700"><?= htmlspecialchars($current_question['explanation']) ?></p>
-                                    </div>
-                                <?php endif; ?>
-                            </div>
-                        </div>
+                <?php if (!isset($feedback)): ?>
+                    <div class="text-center mt-8">
+                        <button type="submit" class="btn-primary text-lg px-12 py-4">
+                            Submit Answer
+                        </button>
                     </div>
                 <?php endif; ?>
-
-                <!-- Submit/Next Button -->
-                <button type="submit" 
-                        class="w-full bg-indigo-600 text-white py-4 px-6 rounded-xl font-bold text-lg hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-[1.02] disabled:scale-100 mt-6 flex items-center justify-center"
-                        <?= $show_feedback ? 'disabled' : '' ?>
-                        id="submit-btn">
-                    <?php if ($show_feedback): ?>
-                        <span>Next Question</span>
-                        <svg class="w-5 h-5 ml-2 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
-                        </svg>
-                    <?php else: ?>
-                        <span>Submit Answer</span>
-                        <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                        </svg>
-                    <?php endif; ?>
-                </button>
             </form>
 
-            <?php if ($show_feedback): ?>
-                <script>
-                    setTimeout(() => {
-                        window.location.href = 'quiz.php?category=<?= $selected_category ?>';
-                    }, 3000);
-                </script>
+            <!-- Feedback and Explanation -->
+            <?php if ($feedback): ?>
+                <div class="mt-8">
+                    <div class="p-5 rounded-xl mb-4 <?= $feedback['correct'] ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200' ?>">
+                        <div class="flex items-center gap-3">
+                            <?php if ($feedback['correct']): ?>
+                                <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white">
+                                    ✓
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-green-800 text-lg">Correct! Well done.</h4>
+                                </div>
+                            <?php else: ?>
+                                <div class="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center text-white">
+                                    ✗
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-red-800 text-lg">Incorrect Answer</h4>
+                                    <p class="text-red-700 mt-1">
+                                        Correct Answer: <?= htmlspecialchars($current_question['correct_answer'] . '. ' . $current_question['option_' . strtolower($current_question['correct_answer'])]); ?>
+                                    </p>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
+                    <!-- Explanation Section -->
+                    <?php if (!empty($feedback['explanation'])): ?>
+                        <div class="explanation-box p-5 rounded-xl">
+                            <h4 class="font-bold text-gray-800 text-lg mb-3 flex items-center gap-2">
+                                <span>💡</span> Explanation
+                            </h4>
+                            <p class="text-gray-700 leading-relaxed"><?= htmlspecialchars($feedback['explanation']) ?></p>
+                        </div>
+                    <?php else: ?>
+                        <div class="explanation-box p-5 rounded-xl">
+                            <h4 class="font-bold text-gray-800 text-lg mb-3 flex items-center gap-2">
+                                <span>💡</span> Explanation
+                            </h4>
+                            <p class="text-gray-600 italic">No explanation available for this question.</p>
+                        </div>
+                    <?php endif; ?>
+                </div>
             <?php endif; ?>
-        </div>
-    <?php else: ?>
-        <!-- Quiz Completed -->
-        <div class="bg-white rounded-2xl shadow-xl p-12 text-center">
-            <div class="text-6xl mb-4">🎉</div>
-            <h2 class="text-3xl font-bold text-gray-800 mb-4">Quiz Completed!</h2>
-            <p class="text-xl text-gray-600 mb-2">You've answered all <?= $total_questions ?> questions.</p>
-            <p class="text-lg text-indigo-600 font-semibold mb-6">
-                Final Score: <?= $_SESSION['score'] ?>/<?= $total_questions ?> 
-                (<?= $total_questions > 0 ? round(($_SESSION['score'] / $total_questions) * 100) : 0 ?>%)
-            </p>
-            <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                <a href="result.php" 
-                   class="bg-indigo-600 text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-indigo-700 transition-colors duration-200 transform hover:scale-105">
-                    View Detailed Results
-                </a>
-                <a href="quiz.php?category=<?= $selected_category ?>&new_quiz=true" 
-                   class="bg-green-600 text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-green-700 transition-colors duration-200 transform hover:scale-105">
-                    Restart Quiz
-                </a>
-                <a href="index.php" 
-                   class="bg-gray-600 text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-gray-700 transition-colors duration-200 transform hover:scale-105">
-                    Back to Home
-                </a>
+
+            <!-- Navigation -->
+            <div class="flex justify-between items-center mt-8 pt-6 border-t border-gray-200">
+                <?php if ($current_index>0): ?>
+                    <a href="quiz.php?category=<?= $selected_category ?>&action=prev" class="btn-secondary">
+                        ← Previous
+                    </a>
+                <?php else: ?>
+                    <div></div>
+                <?php endif; ?>
+
+                <?php if ($current_index<$total_questions-1): ?>
+                    <a href="quiz.php?category=<?= $selected_category ?>&action=next" class="btn-primary">
+                        Next Question →
+                    </a>
+                <?php else: ?>
+                    <a href="result.php" class="btn-primary bg-gradient-to-r from-green-500 to-green-600">
+                        View Final Results ✓
+                    </a>
+                <?php endif; ?>
             </div>
         </div>
-    <?php endif; ?>
+        <?php else: ?>
+        <div class="glass-card p-12 text-center">
+            <div class="text-6xl mb-6">🎉</div>
+            <h2 class="text-4xl font-bold text-gray-800 mb-4">Quiz Completed!</h2>
+            <p class="text-xl text-gray-600 mb-8">You've answered all the questions in this quiz.</p>
+            <a href="result.php" class="btn-primary text-lg px-12 py-4 inline-block">
+                View Detailed Results
+            </a>
+        </div>
+        <?php endif; ?>
+
+    </div>
 </div>
 
 <script>
-// Enhanced form validation and UX
 document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('quiz-form');
-    const submitBtn = document.getElementById('submit-btn');
-    const options = document.querySelectorAll('input[name="answer"]');
-    
-    // Enable/disable submit button based on selection
+    // Add click animation to options
+    const options = document.querySelectorAll('.option-card');
     options.forEach(option => {
-        option.addEventListener('change', function() {
-            submitBtn.disabled = false;
+        option.addEventListener('click', function() {
+            // Remove selected class from all options
+            options.forEach(opt => opt.classList.remove('selected'));
+            // Add selected class to clicked option
+            this.classList.add('selected');
         });
     });
-    
-    // Add loading state to form submission
-    if (form) {
-        form.addEventListener('submit', function(e) {
-            if (!document.querySelector('input[name="answer"]:checked')) {
-                e.preventDefault();
-                alert('Please select an answer before submitting.');
-                return;
-            }
-            
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span>Processing...</span><svg class="w-5 h-5 ml-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v4m0 12v4m8-10h-4M6 12H2"></path></svg>';
-        });
+
+    // Auto-focus on first option if none selected
+    const selectedOption = document.querySelector('.option-card.selected');
+    if (!selectedOption && options.length > 0) {
+        options[0].querySelector('input[type="radio"]').focus();
     }
-    
-    // Add hover effects to options
-    const labels = document.querySelectorAll('label');
-    labels.forEach(label => {
-        label.addEventListener('mouseenter', function() {
-            if (!document.querySelector('input[name="answer"]:checked')) {
-                this.querySelector('div').classList.add('shadow-md', 'scale-[1.02]');
-            }
-        });
-        
-        label.addEventListener('mouseleave', function() {
-            this.querySelector('div').classList.remove('shadow-md', 'scale-[1.02]');
-        });
-    });
 });
 </script>
 

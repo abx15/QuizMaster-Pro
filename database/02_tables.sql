@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS questions (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Indexes for better performance
+-- Indexes for better performance fast lookup
 CREATE INDEX idx_username ON users(username);
 CREATE INDEX idx_email ON users(email);
 CREATE INDEX idx_question_created ON questions(created_at);

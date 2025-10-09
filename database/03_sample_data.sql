@@ -8,6 +8,7 @@ VALUES (
 );
 
 -- Insert Sample Questions
+--  baad me admin question ko insert karega 
 INSERT IGNORE INTO questions (question, option_a, option_b, option_c, option_d, correct_answer) VALUES
 ('What does PHP stand for?', 'Personal Home Page', 'PHP: Hypertext Preprocessor', 'Private Home Page', 'Personal Hypertext Processor', 'B'),
 ('Which symbol is used to denote the end of a PHP statement?', '.', ';', '!', ':', 'B'),

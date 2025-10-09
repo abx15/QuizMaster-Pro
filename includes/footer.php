@@ -1,6 +1,4 @@
-<?php
-// includes/footer.php - Simple Horizontal Footer
-?>
+
     </main>
 
     <!-- Footer -->
@@ -18,10 +16,10 @@
                 <span class="text-lg font-bold">QuizMaster Pro</span>
             </div>
 
-            <!-- Developer Info + Copyright in One Line -->
+            <!--  Copyright  -->
             <div class="text-center md:text-right space-y-0 md:space-y-0">
                 <span class="text-sm text-gray-500">
-                    &copy; 2025 QuizMaster Pro | Developed by Arun Kumar Bind | 
+                    &copy; 2025 QuizMaster Pro | Developed by <a  href="https://arun15dev.netlify.app/" class="hover:text-indigo-600 transition-colors cursor:pointer" target="_blank">Arun Kumar Bind</a> | 
                     <a href="mailto:developerarunwork@gmail.com" class="hover:text-indigo-600 transition-colors">developerarunwork@gmail.com</a> | 
                     <a href="https://github.com/abx15" target="_blank" class="hover:text-indigo-600 transition-colors">GitHub</a> | 
                     <a href="https://www.linkedin.com/in/arun-kumar-a3b047353/" target="_blank" class="hover:text-indigo-600 transition-colors">LinkedIn</a>

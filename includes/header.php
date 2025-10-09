@@ -1,5 +1,4 @@
 <?php
-// includes/header.php - Common Header
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -21,6 +20,7 @@ $is_admin_page = $current_dir === 'admin';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>
         <?php 
+        // Dynamic page titles based on current page
         $page_titles = [
             'index.php' => 'QuizMaster Pro - Home',
             'login.php' => 'Login - Quiz App',

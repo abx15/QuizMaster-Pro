@@ -108,7 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="mt-8 p-4 bg-gray-50 rounded-lg">
                 <p class="text-sm text-gray-600 text-center">
                     <strong>Admin Demo:</strong> username: <code>admin</code> / password: <code>admin123</code><br>
-                    <strong>or</strong> email: <code>admin@example.com</code>
+                    <strong>or</strong> email: <code>admin@quiz.com</code>
                 </p>
             </div>
         </div>

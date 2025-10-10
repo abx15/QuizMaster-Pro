@@ -1,6 +1,6 @@
 <?php
 include '../db.php';
-include './includes/header.php'; 
+include '../includes/header.php'; 
 
 if (!isset($_SESSION['logged_in']) || $_SESSION['role'] !== 'admin') {
     header('Location: ../login.php');
@@ -322,4 +322,4 @@ document.getElementById('viewModal').addEventListener('click', function(e) {
 });
 </script>
 
-<?php include './includes/footer.php'; ?> 
+<?php include '../includes/footer.php'; ?> 

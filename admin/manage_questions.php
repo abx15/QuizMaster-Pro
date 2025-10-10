@@ -1,6 +1,6 @@
 <?php
 include '../db.php';
-include './includes/header.php'; // FIXED PATH
+include './includes/header.php'; 
 
 if (!isset($_SESSION['logged_in']) || $_SESSION['role'] !== 'admin') {
     header('Location: ../login.php');

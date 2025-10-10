@@ -9,9 +9,13 @@ $is_admin = $is_logged_in && isset($_SESSION['role']) && $_SESSION['role'] === '
 $username = $is_logged_in ? $_SESSION['username'] : '';
 $current_page = basename($_SERVER['PHP_SELF']);
 
-// Get current directory for admin pages
+// Get current directory for admin pages - IMPROVED LOGIC
 $current_dir = basename(dirname($_SERVER['PHP_SELF']));
 $is_admin_page = $current_dir === 'admin';
+
+// Base paths for navigation
+$base_path = $is_admin_page ? '../' : '';
+$admin_base_path = $is_admin_page ? '' : 'admin/';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -31,6 +35,7 @@ $is_admin_page = $current_dir === 'admin';
             'add_question.php' => 'Add Question - Quiz App',
             'edit_question.php' => 'Edit Question - Quiz App',
             'delete_question.php' => 'Delete Question - Quiz App',
+            'manage_questions.php' => 'Manage Questions - Quiz App',
             'manage_users.php' => 'Manage Users - Quiz App',
             'quiz_results.php' => 'Quiz Results - Quiz App'
         ];
@@ -74,7 +79,7 @@ $is_admin_page = $current_dir === 'admin';
             <div class="flex justify-between items-center py-4">
                 <!-- Logo -->
                 <div class="flex items-center">
-                    <a href="<?php echo $is_admin_page ? '../index.php' : 'index.php'; ?>" class="flex items-center space-x-3 text-indigo-600 hover:text-indigo-500 transition-colors duration-200">
+                    <a href="<?php echo $base_path; ?>index.php" class="flex items-center space-x-3 text-indigo-600 hover:text-indigo-500 transition-colors duration-200">
                         <div class="p-2 bg-indigo-100 rounded-xl">
                             <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
                                 <circle cx="32" cy="32" r="30" stroke="currentColor" stroke-width="3" fill="none"/>
@@ -95,42 +100,42 @@ $is_admin_page = $current_dir === 'admin';
                 <div class="hidden md:flex items-center space-x-8">
                     <?php if (!$is_logged_in): ?>
                         <!-- Public Navigation -->
-                        <a href="index.php" class="nav-link <?php echo $current_page === 'index.php' ? 'active' : ''; ?> text-gray-700 hover:text-indigo-600">
+                        <a href="<?php echo $base_path; ?>index.php" class="nav-link <?php echo $current_page === 'index.php' ? 'active' : ''; ?> text-gray-700 hover:text-indigo-600">
                             <i class="fas fa-home mr-2"></i>Home
                         </a>
-                        <a href="login.php" class="nav-link <?php echo $current_page === 'login.php' ? 'active' : ''; ?> text-gray-700 hover:text-indigo-600">
+                        <a href="<?php echo $base_path; ?>login.php" class="nav-link <?php echo $current_page === 'login.php' ? 'active' : ''; ?> text-gray-700 hover:text-indigo-600">
                             <i class="fas fa-sign-in-alt mr-2"></i>Login
                         </a>
-                        <a href="register.php" class="nav-link <?php echo $current_page === 'register.php' ? 'active' : ''; ?> text-gray-700 hover:text-indigo-600">
+                        <a href="<?php echo $base_path; ?>register.php" class="nav-link <?php echo $current_page === 'register.php' ? 'active' : ''; ?> text-gray-700 hover:text-indigo-600">
                             <i class="fas fa-user-plus mr-2"></i>Register
                         </a>
                     <?php elseif ($is_admin): ?>
                         <!-- Admin Navigation -->
-                        <a href="<?php echo $is_admin_page ? 'dashboard.php' : 'admin/dashboard.php'; ?>" 
+                        <a href="<?php echo $admin_base_path; ?>dashboard.php" 
                            class="nav-link <?php echo $current_page === 'dashboard.php' ? 'active' : ''; ?> text-gray-700 hover:text-indigo-600">
                             <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
                         </a>
-                        <a href="<?php echo $is_admin_page ? 'add_question.php' : 'admin/add_question.php'; ?>" 
+                        <a href="<?php echo $admin_base_path; ?>add_question.php" 
                            class="nav-link <?php echo $current_page === 'add_question.php' ? 'active' : ''; ?> text-gray-700 hover:text-indigo-600">
                             <i class="fas fa-plus-circle mr-2"></i>Add Question
                         </a>
-                        <a href="<?php echo $is_admin_page ? 'manage_questions.php' : 'admin/manage_questions.php'; ?>" 
+                        <a href="<?php echo $admin_base_path; ?>manage_questions.php" 
                            class="nav-link <?php echo $current_page === 'manage_questions.php' ? 'active' : ''; ?> text-gray-700 hover:text-indigo-600">
                             <i class="fas fa-edit mr-2"></i>Manage Questions
                         </a>
-                        <a href="<?php echo $is_admin_page ? '../index.php' : 'index.php'; ?>" 
+                        <a href="<?php echo $base_path; ?>index.php" 
                            class="nav-link text-gray-700 hover:text-indigo-600">
                             <i class="fas fa-home mr-2"></i>Home
                         </a>
                     <?php else: ?>
                         <!-- User Navigation -->
-                        <a href="quiz.php" class="nav-link <?php echo $current_page === 'quiz.php' ? 'active' : ''; ?> text-gray-700 hover:text-indigo-600">
+                        <a href="<?php echo $base_path; ?>quiz.php" class="nav-link <?php echo $current_page === 'quiz.php' ? 'active' : ''; ?> text-gray-700 hover:text-indigo-600">
                             <i class="fas fa-play-circle mr-2"></i>Take Quiz
                         </a>
-                        <a href="result.php" class="nav-link <?php echo $current_page === 'result.php' ? 'active' : ''; ?> text-gray-700 hover:text-indigo-600">
+                        <a href="<?php echo $base_path; ?>result.php" class="nav-link <?php echo $current_page === 'result.php' ? 'active' : ''; ?> text-gray-700 hover:text-indigo-600">
                             <i class="fas fa-chart-bar mr-2"></i>My Results
                         </a>
-                        <a href="index.php" class="nav-link text-gray-700 hover:text-indigo-600">
+                        <a href="<?php echo $base_path; ?>index.php" class="nav-link text-gray-700 hover:text-indigo-600">
                             <i class="fas fa-home mr-2"></i>Home
                         </a>
                     <?php endif; ?>
@@ -149,7 +154,7 @@ $is_admin_page = $current_dir === 'admin';
                                     <i class="fas fa-crown mr-1"></i>Admin
                                 </span>
                             <?php endif; ?>
-                            <a href="logout.php" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors duration-200 flex items-center">
+                            <a href="<?php echo $base_path; ?>logout.php" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors duration-200 flex items-center">
                                 <i class="fas fa-sign-out-alt mr-2"></i>Logout
                             </a>
                         </div>
@@ -166,31 +171,31 @@ $is_admin_page = $current_dir === 'admin';
             <div id="mobile-menu" class="md:hidden hidden border-t border-gray-200 py-4">
                 <?php if (!$is_logged_in): ?>
                     <!-- Public Mobile Navigation -->
-                    <a href="index.php" class="block py-3 px-4 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors duration-200 <?php echo $current_page === 'index.php' ? 'bg-indigo-50 text-indigo-600 font-semibold' : ''; ?>">
+                    <a href="<?php echo $base_path; ?>index.php" class="block py-3 px-4 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors duration-200 <?php echo $current_page === 'index.php' ? 'bg-indigo-50 text-indigo-600 font-semibold' : ''; ?>">
                         <i class="fas fa-home mr-3"></i>Home
                     </a>
-                    <a href="login.php" class="block py-3 px-4 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors duration-200 <?php echo $current_page === 'login.php' ? 'bg-indigo-50 text-indigo-600 font-semibold' : ''; ?>">
+                    <a href="<?php echo $base_path; ?>login.php" class="block py-3 px-4 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors duration-200 <?php echo $current_page === 'login.php' ? 'bg-indigo-50 text-indigo-600 font-semibold' : ''; ?>">
                         <i class="fas fa-sign-in-alt mr-3"></i>Login
                     </a>
-                    <a href="register.php" class="block py-3 px-4 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors duration-200 <?php echo $current_page === 'register.php' ? 'bg-indigo-50 text-indigo-600 font-semibold' : ''; ?>">
+                    <a href="<?php echo $base_path; ?>register.php" class="block py-3 px-4 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors duration-200 <?php echo $current_page === 'register.php' ? 'bg-indigo-50 text-indigo-600 font-semibold' : ''; ?>">
                         <i class="fas fa-user-plus mr-3"></i>Register
                     </a>
                 <?php elseif ($is_admin): ?>
                     <!-- Admin Mobile Navigation -->
                     <div class="px-4 py-2 text-sm text-gray-500 font-semibold">Admin Panel</div>
-                    <a href="<?php echo $is_admin_page ? 'dashboard.php' : 'admin/dashboard.php'; ?>" 
+                    <a href="<?php echo $admin_base_path; ?>dashboard.php" 
                        class="block py-3 px-4 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors duration-200 <?php echo $current_page === 'dashboard.php' ? 'bg-indigo-50 text-indigo-600 font-semibold' : ''; ?>">
                         <i class="fas fa-tachometer-alt mr-3"></i>Dashboard
                     </a>
-                    <a href="<?php echo $is_admin_page ? 'add_question.php' : 'admin/add_question.php'; ?>" 
+                    <a href="<?php echo $admin_base_path; ?>add_question.php" 
                        class="block py-3 px-4 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors duration-200 <?php echo $current_page === 'add_question.php' ? 'bg-indigo-50 text-indigo-600 font-semibold' : ''; ?>">
                         <i class="fas fa-plus-circle mr-3"></i>Add Question
                     </a>
-                    <a href="<?php echo $is_admin_page ? 'manage_questions.php' : 'admin/manage_questions.php'; ?>" 
+                    <a href="<?php echo $admin_base_path; ?>manage_questions.php" 
                        class="block py-3 px-4 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors duration-200 <?php echo $current_page === 'manage_questions.php' ? 'bg-indigo-50 text-indigo-600 font-semibold' : ''; ?>">
                         <i class="fas fa-edit mr-3"></i>Manage Questions
                     </a>
-                    <a href="<?php echo $is_admin_page ? '../index.php' : 'index.php'; ?>" 
+                    <a href="<?php echo $base_path; ?>index.php" 
                        class="block py-3 px-4 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors duration-200">
                         <i class="fas fa-home mr-3"></i>Home
                     </a>
@@ -199,24 +204,24 @@ $is_admin_page = $current_dir === 'admin';
                             Logged in as: <span class="font-semibold text-indigo-600"><?php echo htmlspecialchars($username); ?></span>
                             <span class="admin-badge ml-2 px-2 py-1 rounded-full text-xs">Admin</span>
                         </div>
-                        <a href="logout.php" class="block py-3 px-4 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200">
+                        <a href="<?php echo $base_path; ?>logout.php" class="block py-3 px-4 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200">
                             <i class="fas fa-sign-out-alt mr-3"></i>Logout
                         </a>
                     </div>
                 <?php else: ?>
                     <!-- User Mobile Navigation -->
-                    <a href="quiz.php" class="block py-3 px-4 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors duration-200 <?php echo $current_page === 'quiz.php' ? 'bg-indigo-50 text-indigo-600 font-semibold' : ''; ?>">
+                    <a href="<?php echo $base_path; ?>quiz.php" class="block py-3 px-4 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors duration-200 <?php echo $current_page === 'quiz.php' ? 'bg-indigo-50 text-indigo-600 font-semibold' : ''; ?>">
                         <i class="fas fa-play-circle mr-3"></i>Take Quiz
                     </a>
-                    <a href="result.php" class="block py-3 px-4 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors duration-200 <?php echo $current_page === 'result.php' ? 'bg-indigo-50 text-indigo-600 font-semibold' : ''; ?>">
+                    <a href="<?php echo $base_path; ?>result.php" class="block py-3 px-4 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors duration-200 <?php echo $current_page === 'result.php' ? 'bg-indigo-50 text-indigo-600 font-semibold' : ''; ?>">
                         <i class="fas fa-chart-bar mr-3"></i>My Results
                     </a>
-                    <a href="index.php" class="block py-3 px-4 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors duration-200">
+                    <a href="<?php echo $base_path; ?>index.php" class="block py-3 px-4 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors duration-200">
                         <i class="fas fa-home mr-3"></i>Home
                     </a>
                     <div class="border-t border-gray-200 mt-2 pt-2">
                         <div class="px-4 py-2 text-sm text-gray-500">Welcome, <span class="font-semibold text-indigo-600"><?php echo htmlspecialchars($username); ?></span></div>
-                        <a href="logout.php" class="block py-3 px-4 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200">
+                        <a href="<?php echo $base_path; ?>logout.php" class="block py-3 px-4 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200">
                             <i class="fas fa-sign-out-alt mr-3"></i>Logout
                         </a>
                     </div>
@@ -227,23 +232,3 @@ $is_admin_page = $current_dir === 'admin';
 
     <!-- Main Content Container -->
     <main class="flex-grow">
-        <!-- Content will be inserted here by individual pages -->
-    
-
-<script>
-// Mobile menu toggle
-document.getElementById('mobile-menu-button').addEventListener('click', function() {
-    const mobileMenu = document.getElementById('mobile-menu');
-    mobileMenu.classList.toggle('hidden');
-});
-
-// Close mobile menu when clicking outside
-document.addEventListener('click', function(event) {
-    const mobileMenu = document.getElementById('mobile-menu');
-    const menuButton = document.getElementById('mobile-menu-button');
-    
-    if (!mobileMenu.contains(event.target) && !menuButton.contains(event.target)) {
-        mobileMenu.classList.add('hidden');
-    }
-});
-</script>
